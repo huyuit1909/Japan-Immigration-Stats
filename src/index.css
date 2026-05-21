@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Vibrant Light Mode Palette */
+  --bg-color: #f8fafc; /* Slate 50 */
+  --text-primary: #0f172a; /* Slate 900 */
+  --text-secondary: #475569; /* Slate 600 */
+  
+  /* Primary Colors */
+  --primary-color: #2563eb; /* Blue 600 */
+  --primary-hover: #1d4ed8; /* Blue 700 */
+  --accent-color: #7c3aed; /* Violet 600 */
+  
+  /* Status Colors */
+  --success: #059669; /* Emerald 600 */
+  --warning: #d97706; /* Amber 600 */
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  
+  /* Khổ màu Pearl (Ngọc trai) */
+  --bg-color: #f6f8fb;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent-color: #6366f1;
+  --accent-secondary: #ec4899;
+  
+  /* Cấu trúc Kính Mờ Thượng Lưu */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--text-primary);
+  /* Tạo nền Mesh loang lổ ngọc trai */
+  background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.5) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(224, 231, 255, 0.5) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(252, 231, 243, 0.5) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(204, 251, 241, 0.5) 0px, transparent 50%);
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+#root {
+  width: 100%;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Base UI Classes */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px -1px rgba(0,0,0, 0.05), inset 0 0 0 1px rgba(255,255,255,0.5);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}

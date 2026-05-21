@@ -1,0 +1,2 @@
+/api/estat/*  https://api.e-stat.go.jp/rest/3.0/app/json/:splat  200
+/*  /index.html  200

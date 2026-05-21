@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/estat/:match*",
+      "destination": "https://api.e-stat.go.jp/rest/3.0/app/json/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -3,10 +3,8 @@ import './App.css';
 import { MOCK_DATA, ImmigrationRecord } from './data/mock';
 import { fetchRealEstatData } from './api/estat';
 import { calculateCFM } from './utils/simulator';
-import { calculatePersonalProfile, PersonalProfile, AIPrediction } from './utils/aiPredictor';
-import { calculateHSPPoints, HSPCriteria } from './utils/hspCalculator';
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Line, LineChart } from 'recharts';
-import { FileText, Clock, CheckCircle, Calculator, Building2, Loader, CalendarClock, Info, TrendingUp, X } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Calculator, Building2, Loader, CalendarClock, Info, TrendingUp } from 'lucide-react';
 
 function App() {
   const [data, setData] = useState<ImmigrationRecord[]>(MOCK_DATA);
@@ -15,32 +13,7 @@ function App() {
   const [selectedType, setSelectedType] = useState('Xin vĩnh trú');
   const [submitDate, setSubmitDate] = useState('2026-03-25');
 
-  // AI Predictor State
-  const [showAIPredictor, setShowAIPredictor] = useState(false);
-  const [profile, setProfile] = useState<PersonalProfile>({ visaRoute: 'regular', yearsInJapan: 10, income: 400, taxPensionClean: true, criminalRecord: false });
-  const [prediction, setPrediction] = useState<AIPrediction | null>(null);
 
-  const [hspCriteria, setHspCriteria] = useState<HSPCriteria>({
-    academic: 'bachelor',
-    experienceYears: 5,
-    age: 28,
-    annualIncome: 500,
-    japanese: 'none',
-    japanUniGraduate: false,
-    topUni: false,
-    dualDegree: false,
-    itCert: 'disabled',
-    govSupportCompany: false
-  });
-
-  // Calculate explicit HSP points whenever criteria or main income changes
-  useEffect(() => {
-    const freshCriteria = { ...hspCriteria, annualIncome: profile.income };
-    const calculatedPoints = calculateHSPPoints(freshCriteria);
-    if (profile.hspPoints !== calculatedPoints) {
-      setProfile(p => ({ ...p, hspPoints: calculatedPoints }));
-    }
-  }, [hspCriteria, profile.income, profile.hspPoints]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,10 +32,6 @@ function App() {
     loadData();
   }, []);
 
-  const handlePredictorSubmit = () => {
-    setShowAIPredictor(false);
-  };
-
   // Filter Data
   const filteredData = useMemo(() => {
     return data.filter(d => d.bureau === selectedBureau && d.type === selectedType);
@@ -75,15 +44,6 @@ function App() {
   const simResult = useMemo(() => {
     return calculateCFM(submitDate, filteredData);
   }, [submitDate, filteredData]);
-
-  // Update Prediction when Simulation changes
-  useEffect(() => {
-    if (simResult && profile) {
-      const basePass = simResult.projected ? 60 : 75; // Default base rates if real data is not enough
-      const latestPassRate = filteredData.length > 0 && filteredData[filteredData.length - 1].passRate ? filteredData[filteredData.length - 1].passRate : basePass;
-      setPrediction(calculatePersonalProfile(profile, latestPassRate as number));
-    }
-  }, [simResult, profile, filteredData]);
 
   return (
     <div className="app-container animate-fade-in">
@@ -191,34 +151,10 @@ function App() {
                 />
                 <p className="sim-note">*Nếu bạn chưa nộp, hãy chọn ngày hôm nay để xem tình trạng hàng chờ của ngày hôm đó.</p>
               </div>
+
+
               
-              <div style={{ display: 'flex', marginTop: '1.5rem' }}>
-                <button 
-                  onClick={() => setShowAIPredictor(true)}
-                  style={{ 
-                    background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)', 
-                    color: 'white', 
-                    border: 'none', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.25rem',
-                    borderRadius: '999px',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    boxShadow: '0 8px 20px rgba(168, 85, 247, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    WebkitFontSmoothing: 'antialiased',
-                    width: '100%'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(168, 85, 247, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.4)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3)'; }}
-                >
-                  <Calculator size={18}/> Phân tích Đặc Quyền Vĩnh Trú (AI)
-                </button>
-              </div>
+
             </div>
             
             <div className="sim-formula" style={{ flex: '2', minWidth: '320px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', marginBottom: 0, padding: 0, background: 'transparent', border: 'none' }}>
@@ -248,47 +184,116 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Inner Stats Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '1rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}><Clock size={14}/> Thời gian chờ xử lý ròng</span>
-                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.4rem' }}>{simResult.waitDays.toLocaleString()} ngày</span>
-                    </div>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '1rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}><Building2 size={14}/> Số hồ sơ tồn đọng trước bạn</span>
-                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.4rem' }}>{simResult.positionDetails.startingBacklog.toLocaleString()}</span>
+                  {/* Dòng thời gian lộ trình dự kiến */}
+                  <div style={{ 
+                    background: 'rgba(255, 255, 255, 0.55)', 
+                    border: '1px solid rgba(255, 255, 255, 0.8)', 
+                    padding: '1.25rem 1rem', 
+                    borderRadius: '16px', 
+                    position: 'relative'
+                  }}>
+                    <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      📍 Lộ trình dự kiến của hồ sơ
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', minHeight: '80px' }}>
+                      {/* Đường nối */}
+                      <div style={{ 
+                        position: 'absolute', 
+                        top: '16px', 
+                        left: '12%', 
+                        right: '12%', 
+                        height: '4px', 
+                        background: 'linear-gradient(90deg, #3b82f6 0%, #7c3aed 50%, #10b981 100%)', 
+                        borderRadius: '2px', 
+                        zIndex: 0 
+                      }}></div>
+                      
+                      {/* Step 1: Nộp */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
+                          color: 'white', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
+                        }}>1</div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Nộp hồ sơ</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
+                          {simResult.submitDate?.split('-').reverse().join('/')}
+                        </span>
+                      </div>
+
+                      {/* Step 2: Thẩm tra */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          background: 'linear-gradient(135deg, #7c3aed, #6366f1)', 
+                          color: 'white', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          boxShadow: '0 0 12px rgba(124, 58, 237, 0.4)'
+                        }}>2</div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Được thẩm tra</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
+                          {simResult.vettingStartDate?.split('-').reverse().join('/')}
+                        </span>
+                      </div>
+
+                      {/* Step 3: Kết quả */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          background: 'linear-gradient(135deg, #10b981, #059669)', 
+                          color: 'white', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)'
+                        }}>3</div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Có kết quả</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
+                          {simResult.completionDate?.split('-').reverse().join('/')}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* AI Prediction Notice */}
-                  {prediction && (
-                    <div style={{ background: 'rgba(255,255,255,0.8)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-color)' }}>
-                      <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--accent-color)', marginBottom: '0.5rem' }}>🤖 Tiên đoán Cá nhân hóa (AI Predictor)</p>
-                      <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                        {prediction.reasons.map((r, i) => <li key={i} style={{ marginBottom: '0.25rem' }}>{r}</li>)}
-                      </ul>
-                      <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <span style={{ background: 'rgba(139, 92, 246, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, color: 'var(--accent-color)' }}>Tỉ lệ đậu của riêng bạn: {prediction.passRate}%</span>
-                        
-                        {(() => {
-                           const adjustedDays = Math.round(simResult.waitDays * prediction.waitDaysMultiplier);
-                           const d = new Date(submitDate); 
-                           d.setDate(d.getDate() + adjustedDays);
-                           const dString = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
-                           return (
-                             <>
-                               <span style={{ background: 'rgba(5, 150, 105, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, color: 'var(--success)' }}>
-                                 Mức chờ cá nhân: {adjustedDays.toLocaleString()} ngày
-                               </span>
-                               <span style={{ background: 'rgba(236, 72, 153, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 800, color: '#ec4899', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                 ⭐ Chạm tay vào thẻ ngày: {dString}
-                               </span>
-                             </>
-                           );
-                        })()}
-                      </div>
+                  {/* Inner Stats Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Clock size={12}/> Tổng thời gian chờ</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.waitDays.toLocaleString()} ngày</span>
                     </div>
-                  )}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><CalendarClock size={12}/> Chờ trong hàng đợi</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.queueWaitDays.toLocaleString()} ngày</span>
+                    </div>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Clock size={12}/> Thời gian thẩm tra</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.activeVettingDays.toLocaleString()} ngày</span>
+                    </div>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Building2 size={12}/> Hồ sơ tồn đọng</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.positionDetails.startingBacklog.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+
 
                   {/* Badges */}
                   <div style={{ marginTop: '0.25rem' }}>
@@ -343,7 +348,10 @@ function App() {
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)' }}
                       labelStyle={{ color: 'var(--text-primary)', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value}%`, 'Tỉ lệ đậu']}
+                      formatter={(value: string | number | boolean | null | undefined | readonly (string | number)[]) => [
+                        typeof value === 'number' || typeof value === 'string' ? `${value}%` : '',
+                        'Tỉ lệ đậu'
+                      ]}
                     />
                     <Legend />
                     <Line type="monotone" dataKey="passRate" name="Tỉ lệ đậu" stroke="var(--accent-color)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: "var(--bg-color)" }} activeDot={{ r: 6 }} />
@@ -357,138 +365,7 @@ function App() {
         )}
       </main>
 
-      {/* AI Predictor Modal */}
-      {showAIPredictor && (
-        <div className="modal-overlay" onClick={() => setShowAIPredictor(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-               <h2>🤖 Thẩm Phán Đặc Nhiệm AI</h2>
-               <button onClick={() => setShowAIPredictor(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><X/></button>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>Hãy nhập hồ sơ của bạn, hệ thống sẽ chập số liệu thực tế tại cục để tiên đoán Tỷ lệ đậu & Fast-track của bạn.</p>
-            
-            <div className="form-group">
-              <label>Loại Hồ Sơ Xin Vĩnh Trú</label>
-              <div className="pill-group">
-                <button className={`pill-btn ${profile.visaRoute === 'regular' ? 'active' : ''}`} onClick={() => setProfile({...profile, visaRoute: 'regular'})}>Thường (Chưa đủ điểm)</button>
-                <button className={`pill-btn ${profile.visaRoute === 'hsp' ? 'active' : ''}`} onClick={() => setProfile({...profile, visaRoute: 'hsp'})}>Nhân lực Chất lượng cao (HSP 70+)</button>
-                <button className={`pill-btn ${profile.visaRoute === 'spouse' ? 'active' : ''}`} onClick={() => setProfile({...profile, visaRoute: 'spouse'})}>Vợ/chồng người Nhật</button>
-              </div>
-            </div>
 
-            <div className="form-group">
-              <label>Thu nhập hằng năm (Năm gần nhất): <span style={{color: 'var(--primary-color)'}}>{profile.income} man</span></label>
-              <input type="range" min="200" max="1200" step="50" value={profile.income} onChange={(e) => setProfile({...profile, income: parseInt(e.target.value)})} style={{ width: '100%' }} />
-            </div>
-
-            <div className="form-group">
-              <label>Tuổi hiện tại: <span style={{color: 'var(--primary-color)'}}>{hspCriteria.age} tuổi</span></label>
-              <input type="range" min="20" max="55" step="1" value={hspCriteria.age} onChange={(e) => setHspCriteria({...hspCriteria, age: parseInt(e.target.value)})} style={{ width: '100%' }} />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label>Số năm CƯ TRÚ (sống) liên tục tại Nhật: <span style={{color: 'var(--primary-color)'}}>{profile.yearsInJapan} năm</span></label>
-              <input type="range" min="0" max="15" value={profile.yearsInJapan} onChange={(e) => {
-                setProfile({...profile, yearsInJapan: parseInt(e.target.value)});
-              }} style={{ width: '100%' }} />
-              <p className="sim-note" style={{ marginTop: '0.25rem' }}>*Dùng làm căn cứ chung duyệt các loại Vĩnh Trú (Luật: Cần 10 năm bám trụ nếu nộp diện Thường).</p>
-            </div>
-
-            {profile.visaRoute === 'hsp' && (
-              <div style={{ background: 'linear-gradient(to right, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--primary-color)' }}>Bảng Tính Điểm Bộ Tư Pháp (Tự động)</h3>
-                  <div style={{ background: profile.hspPoints && profile.hspPoints >= 80 ? 'var(--success)' : profile.hspPoints && profile.hspPoints >= 70 ? '#f59e0b' : 'var(--text-secondary)', color: 'white', padding: '0.25rem 1rem', borderRadius: '999px', fontWeight: 800, fontSize: '1.25rem' }}>
-                    {profile.hspPoints} Điểm
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ fontSize: '0.875rem' }}>Kinh nghiệm Làm việc CHUYÊN MÔN: <span style={{color: 'var(--primary-color)', fontWeight: 800}}>{hspCriteria.experienceYears} năm</span></label>
-                  <input type="range" min="0" max="15" value={hspCriteria.experienceYears} onChange={(e) => setHspCriteria({...hspCriteria, experienceYears: parseInt(e.target.value)})} style={{ width: '100%' }} />
-                  <p className="sim-note" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>*Khác với số năm cư trú. Đây là thời gian thực tế đi làm đúng chuyên ngành (Không tính thời gian đi học).</p>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.875rem' }}>Học vị</label>
-                  <div className="pill-group">
-                    <button className={`pill-btn ${hspCriteria.academic === 'doctor' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, academic: 'doctor'})}>Tiến sĩ (+30)</button>
-                    <button className={`pill-btn ${hspCriteria.academic === 'master' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, academic: 'master'})}>Thạc sĩ (+20)</button>
-                    <button className={`pill-btn ${hspCriteria.academic === 'bachelor' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, academic: 'bachelor'})}>Cử nhân (+10)</button>
-                    <button className={`pill-btn ${hspCriteria.academic === 'none' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, academic: 'none'})}>Khác</button>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.875rem' }}>Chứng chỉ Tiếng Nhật</label>
-                  <div className="pill-group">
-                    <button className={`pill-btn ${hspCriteria.japanese === 'n1' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, japanese: 'n1'})}>N1 (+15)</button>
-                    <button className={`pill-btn ${hspCriteria.japanese === 'n2' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, japanese: 'n2'})}>N2 (+10)</button>
-                    <button className={`pill-btn ${hspCriteria.japanese === 'none' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, japanese: 'none'})}>Chưa có</button>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ fontSize: '0.875rem' }}>Các điểm thưởng Bổ sung (MOJ Bonus)</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    
-                    <label style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                      <input type="checkbox" checked={hspCriteria.japanUniGraduate} onChange={(e) => setHspCriteria({...hspCriteria, japanUniGraduate: e.target.checked})} style={{ width: '16px', height: '16px' }}/>
-                      Tốt nghiệp ĐH tại Nhật Bản (+10đ)
-                    </label>
-
-                    <label style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                      <input type="checkbox" checked={hspCriteria.topUni} onChange={(e) => setHspCriteria({...hspCriteria, topUni: e.target.checked})} style={{ width: '16px', height: '16px' }}/>
-                      TN Trường Top 300 TG / ĐH Chỉ định (+10đ)
-                    </label>
-
-                    <label style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                      <input type="checkbox" checked={hspCriteria.dualDegree} onChange={(e) => setHspCriteria({...hspCriteria, dualDegree: e.target.checked})} style={{ width: '16px', height: '16px' }}/>
-                      Có bằng Kép (Nhiều Thạc sĩ/Tiến sĩ) (+5đ)
-                    </label>
-
-                    <label style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                      <input type="checkbox" checked={hspCriteria.govSupportCompany} onChange={(e) => setHspCriteria({...hspCriteria, govSupportCompany: e.target.checked})} style={{ width: '16px', height: '16px' }}/>
-                      Cty thuộc D/án Sáng tạo chính phủ (+10đ)
-                    </label>
-
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.875rem' }}>Chứng chỉ IT (FE, AP...)</label>
-                  <div className="pill-group">
-                    <button className={`pill-btn ${hspCriteria.itCert === 'disabled' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, itCert: 'disabled'})}>Không có</button>
-                    <button className={`pill-btn ${hspCriteria.itCert === 'basic' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, itCert: 'basic'})}>Pass 1 Chứng chỉ (+5đ)</button>
-                    <button className={`pill-btn ${hspCriteria.itCert === 'advanced' ? 'active' : ''}`} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }} onClick={() => setHspCriteria({...hspCriteria, itCert: 'advanced'})}>Nhiều chứng chỉ/Cấp cao (+10đ)</button>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-            <div className="form-group">
-              <label>Đóng thuế, Nenkin đầy đủ hạn 100%?</label>
-              <div className="pill-group">
-                <button className={`pill-btn ${profile.taxPensionClean ? 'active' : ''}`} onClick={() => setProfile({...profile, taxPensionClean: true})}>Chuẩn 100%</button>
-                <button className={`pill-btn ${!profile.taxPensionClean ? 'active' : ''}`} onClick={() => setProfile({...profile, taxPensionClean: false})}>Có nợ / trễ hạn / quên</button>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Tiền sự giao thông (Vé đỏ) / Hình sự?</label>
-              <div className="pill-group">
-                <button className={`pill-btn ${!profile.criminalRecord ? 'active' : ''}`} onClick={() => setProfile({...profile, criminalRecord: false})}>Trong sạch</button>
-                <button className={`pill-btn ${profile.criminalRecord ? 'active' : ''}`} onClick={() => setProfile({...profile, criminalRecord: true})}>Đã từng bị phạt nặng</button>
-              </div>
-            </div>
-
-            <button onClick={handlePredictorSubmit} style={{ width: '100%', padding: '1rem', background: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1rem', fontWeight: 600, marginTop: '1rem', cursor: 'pointer' }}>
-              Xem kết quả Mô Phỏng Vĩnh Trú
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ export const calculatePersonalProfile = (
   basePassRate: number
 ): AIPrediction => {
   let rate = basePassRate;
-  let multiplier = 1.0;
+  const multiplier = 1.0;
   const reasons: string[] = [];
 
   // Critical Failure Checks
@@ -32,31 +32,35 @@ export const calculatePersonalProfile = (
   }
 
   // Route specific checks
+  // LƯU Ý: Đây là xin VĨNH TRÚ (永住). Ưu đãi HSP là RÚT NGẮN ĐIỀU KIỆN thời gian
+  // cư trú để được nộp (80đ→1 năm, 70đ→3 năm), KHÔNG rút ngắn thời gian thẩm định.
+  // Vì vậy multiplier luôn = 1.0 cho Vĩnh trú (không có luồng siêu tốc cho 永住).
   if (profile.visaRoute === 'hsp') {
     if (profile.hspPoints && profile.hspPoints >= 80) {
       if (profile.yearsInJapan < 1) {
-        reasons.push("⚠️ Dù có 80 điểm HSP nhưng chưa đủ 1 năm lưu trú, rất dễ bị trả hồ sơ.");
+        reasons.push("⚠️ Có 80+ điểm HSP nhưng chưa đủ 1 năm cư trú nên CHƯA đủ điều kiện nộp Vĩnh trú theo chế độ đặc biệt.");
         rate *= 0.2;
       } else {
-        reasons.push("✨ Được hưởng Chế độ Đặc biệt (HSP > 80): Thẩm định siêu tốc 1 năm.");
+        reasons.push("✨ HSP 80+ điểm: đủ điều kiện nộp Vĩnh trú sớm chỉ sau 1 năm (thay vì 10 năm). Hồ sơ điểm cao thường có tỉ lệ đậu rất tốt.");
         rate = Math.min(rate * 1.5, 98);
-        multiplier = 0.4; // 60% faster
+        // multiplier giữ 1.0: thời gian thẩm định Vĩnh trú không được rút ngắn.
       }
     } else if (profile.hspPoints && profile.hspPoints >= 70) {
       if (profile.yearsInJapan < 3) {
-        reasons.push("⚠️ Có 70 điểm HSP nhưng chưa đủ 3 năm lưu trú chuyên môn.");
+        reasons.push("⚠️ Có 70+ điểm HSP nhưng chưa đủ 3 năm cư trú nên CHƯA đủ điều kiện nộp Vĩnh trú theo chế độ đặc biệt.");
         rate *= 0.2;
       } else {
-        reasons.push("✨ Được hưởng Chế độ Xét ưu tiên (HSP > 70).");
+        reasons.push("✨ HSP 70+ điểm: đủ điều kiện nộp Vĩnh trú sớm sau 3 năm (thay vì 10 năm). Cần duy trì điểm ở cả mốc 3 năm trước và lúc nộp.");
         rate = Math.min(rate * 1.2, 95);
-        multiplier = 0.6; // 40% faster
+        // multiplier giữ 1.0: thời gian thẩm định Vĩnh trú không được rút ngắn.
       }
+    } else {
+      reasons.push("ℹ️ Dưới 70 điểm HSP nên không áp dụng chế độ đặc biệt — xét Vĩnh trú theo diện thường (10 năm cư trú).");
     }
   } else if (profile.visaRoute === 'spouse') {
     if (profile.yearsInJapan >= 3) {
       reasons.push("❤️ Diện kết hôn: Được miễn giảm yêu cầu 10 năm lưu trú.");
       rate = Math.min(rate * 1.3, 96);
-      multiplier = 0.8;
     } else {
       reasons.push("⚠️ Diện kết hôn nhưng chưa đủ số năm chung sống cơ bản.");
       rate *= 0.4;

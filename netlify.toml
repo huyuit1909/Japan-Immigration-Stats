@@ -1,0 +1,19 @@
+# netlify.toml
+
+# Cấu hình build cho dự án
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# Cấu hình reverse proxy cho API e-Stat để tránh lỗi CORS trên Netlify
+[[redirects]]
+  from = "/api/estat/*"
+  to = "https://api.e-stat.go.jp/rest/3.0/app/json/:splat"
+  status = 200
+  force = true
+
+# Đảm bảo Single Page Application (SPA) reload không bị lỗi 404
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

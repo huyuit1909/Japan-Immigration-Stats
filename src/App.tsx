@@ -1,30 +1,76 @@
 import { useState, useMemo, useEffect } from 'react';
 import './App.css';
-import { MOCK_DATA, ImmigrationRecord } from './data/mock';
+import { ImmigrationRecord } from './types/immigration';
 import { fetchRealEstatData } from './api/estat';
 import { calculateCFM } from './utils/simulator';
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Line, LineChart } from 'recharts';
 import { FileText, Clock, CheckCircle, Calculator, Building2, Loader, CalendarClock, Info, TrendingUp } from 'lucide-react';
 
+const Fraction = ({ num, den }: { num: React.ReactNode; den: React.ReactNode }) => (
+  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'middle', padding: '0 6px' }}>
+    <div style={{ borderBottom: '1.5px solid rgba(15, 23, 42, 0.85)', paddingBottom: '2px', textAlign: 'center', width: '100%', fontWeight: 600 }}>{num}</div>
+    <div style={{ paddingTop: '2px', textAlign: 'center', width: '100%', fontWeight: 600 }}>{den}</div>
+  </div>
+);
+
+const BracketedFraction = ({ num, den }: { num: React.ReactNode; den: React.ReactNode }) => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', color: '#0f172a' }}>
+    <span style={{ fontSize: '2.5rem', fontWeight: 200, marginRight: '1px', marginLeft: '1px', transform: 'scaleY(1.3)', display: 'inline-block', color: '#475569' }}>[</span>
+    <Fraction num={num} den={den} />
+    <span style={{ fontSize: '2.5rem', fontWeight: 200, marginLeft: '1px', marginRight: '1px', transform: 'scaleY(1.3)', display: 'inline-block', color: '#475569' }}>]</span>
+  </div>
+);
+
+const HorizontalBrace = ({ value }: { value: string | number }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minWidth: '50px', marginTop: '2px' }}>
+    <svg viewBox="0 0 100 10" preserveAspectRatio="none" style={{ width: '100%', height: '8px', color: '#64748b', margin: '2px 0' }}>
+      <path
+        d="M 0,0 C 15,0 35,2 45,6 C 47,7 48,10 50,10 C 52,10 53,7 55,6 C 65,2 85,0 100,0"
+        stroke="currentColor"
+        fill="none"
+        strokeWidth="1.2"
+      />
+    </svg>
+    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginTop: '1px', fontFamily: 'monospace' }}>{value}</span>
+  </div>
+);
+
+const formatEnglishDate = (dateStr?: string): string => {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return `${months[m - 1]} ${d}, ${y}`;
+};
+
 function App() {
-  const [data, setData] = useState<ImmigrationRecord[]>(MOCK_DATA);
+  const [data, setData] = useState<ImmigrationRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedBureau, setSelectedBureau] = useState('Chi nhánh Yokohama');
   const [selectedType, setSelectedType] = useState('Xin vĩnh trú');
   const [submitDate, setSubmitDate] = useState('2026-03-25');
 
-
-
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const _appId = import.meta.env.VITE_ESTAT_APP_ID;
-        if (_appId) {
-          const apiData = await fetchRealEstatData(_appId);
-          if (apiData && apiData.length > 0) setData(apiData);
+        if (!_appId) {
+          throw new Error("Không tìm thấy mã VITE_ESTAT_APP_ID trong cấu hình biến môi trường (.env). Vui lòng kiểm tra lại cấu hình ứng dụng.");
         }
-      } catch (e) {
-        console.error("Dùng mock data do nạp data thật thất bại", e);
+        const apiData = await fetchRealEstatData(_appId);
+        if (apiData && apiData.length > 0) {
+          setData(apiData);
+        } else {
+          throw new Error("API e-Stat của Chính phủ Nhật Bản trả về kết quả rỗng hoặc không có dữ liệu phù hợp.");
+        }
+      } catch (e: any) {
+        console.error("Lỗi nạp dữ liệu API e-Stat:", e);
+        setError(e.message || "Không thể kết nối với máy chủ e-Stat chính phủ Nhật Bản. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.");
       } finally {
         setLoading(false);
       }
@@ -81,9 +127,57 @@ function App() {
         </section>
 
         {loading ? (
-          <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem' }}>
-            <Loader className="animate-spin" size={32} style={{ margin: '0 auto', color: '#3b82f6' }} />
-            <p style={{ marginTop: '1rem' }}>Đang nạp dữ liệu từ e-Stat Chính phủ Nhật...</p>
+          <div className="glass-panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <Loader className="animate-spin" size={32} style={{ margin: '0 auto', color: '#4f46e5' }} />
+            <p style={{ marginTop: '1.25rem', fontSize: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Đang nạp dữ liệu từ e-Stat Chính phủ Nhật...</p>
+          </div>
+        ) : error ? (
+          <div className="glass-panel animate-fade-in" style={{ 
+            background: 'linear-gradient(135deg, rgba(254, 226, 226, 0.85) 0%, rgba(254, 242, 242, 0.55) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            boxShadow: '0 12px 32px 0 rgba(239, 68, 68, 0.05)',
+            padding: '3rem 2rem',
+            textAlign: 'center',
+            borderRadius: '24px',
+            maxWidth: '650px',
+            margin: '2rem auto',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+              <Info size={30} />
+            </div>
+            <h3 style={{ fontSize: '1.35rem', color: '#991b1b', fontWeight: 700, marginBottom: '0.75rem', fontFamily: '"Outfit", sans-serif' }}>
+              Không thể nạp dữ liệu từ e-Stat
+            </h3>
+            <p style={{ fontSize: '0.95rem', color: '#7f1d1d', lineHeight: 1.6, marginBottom: '1.5rem', fontWeight: 500 }}>
+              {error}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem 2rem',
+                borderRadius: '12px',
+                fontWeight: 600,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.2)',
+                transition: 'transform 0.15s, box-shadow 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.2)';
+              }}
+            >
+              Thử tải lại dữ liệu
+            </button>
           </div>
         ) : (
           <>
@@ -157,151 +251,220 @@ function App() {
 
             </div>
             
-            <div className="sim-formula" style={{ flex: '2', minWidth: '320px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', marginBottom: 0, padding: 0, background: 'transparent', border: 'none' }}>
-              {simResult ? (
-                <div style={{ 
-                  width: '100%',
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 100%)',
-                  border: '1px solid var(--glass-border)',
-                  boxShadow: '0 12px 32px 0 rgba(31, 38, 135, 0.1)',
-                  borderRadius: '20px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1.25rem',
-                  backdropFilter: 'blur(8px)'
-                }}>
-                  {/* Ngày dự kiến Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                       <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>📅 Trả kết quả dự kiến vào</span>
-                       <span className="text-gradient-primary" style={{ fontSize: '3rem', fontWeight: 800, lineHeight: 1.1, marginTop: '0.25rem' }}>
-                         {simResult.completionDate?.split('-').reverse().join('/')}
-                       </span>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))', padding: '1rem', borderRadius: '50%' }}>
-                      <CalendarClock size={40} color="url(#colorPending)" style={{ stroke: 'var(--primary-color)' }} />
-                    </div>
-                  </div>
-
-                  {/* Dòng thời gian lộ trình dự kiến */}
+            <div className="sim-formula" style={{ flex: '2', minWidth: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginBottom: 0, padding: 0, background: 'transparent', border: 'none' }}>
+              {simResult && simResult.formulaDetails ? (() => {
+                const f = simResult.formulaDetails;
+                return (
                   <div style={{ 
-                    background: 'rgba(255, 255, 255, 0.55)', 
-                    border: '1px solid rgba(255, 255, 255, 0.8)', 
-                    padding: '1.25rem 1rem', 
-                    borderRadius: '16px', 
-                    position: 'relative'
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.06)',
+                    borderRadius: '24px',
+                    padding: '2rem 1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)'
                   }}>
-                    <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      📍 Lộ trình dự kiến của hồ sơ
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', minHeight: '80px' }}>
-                      {/* Đường nối */}
+                    {/* Ngày dự kiến Header */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.5rem', width: '100%' }}>
+                      <span style={{ fontSize: '1.65rem', fontWeight: 600, color: '#1e293b', fontFamily: '"Outfit", "Inter", sans-serif', letterSpacing: '-0.02em' }}>
+                        Estimated Completion Date
+                      </span>
+                      <span style={{ 
+                        fontSize: '3.2rem', 
+                        fontWeight: 800, 
+                        lineHeight: 1.1, 
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontFamily: '"Outfit", "Inter", sans-serif',
+                        margin: '0.25rem 0'
+                      }}>
+                        {formatEnglishDate(simResult.completionDate)}
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, fontStyle: 'italic' }}>
+                        (Dự kiến ngày {simResult.completionDate?.split('-').reverse().join('/')})
+                      </span>
+                    </div>
+
+                    <div style={{ width: '100%', height: '1px', backgroundColor: 'rgba(0,0,0,0.06)' }}></div>
+
+                    {/* Khung công thức toán học */}
+                    <div style={{
+                      width: '100%',
+                      background: 'rgba(248, 250, 252, 0.9)',
+                      border: '1px solid rgba(226, 232, 240, 0.8)',
+                      borderRadius: '20px',
+                      padding: '1.75rem 1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '1.25rem',
+                      boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.01)',
+                      overflowX: 'auto',
+                      maxWidth: '100%'
+                    }}>
+                      {/* Dòng 1: Công thức chính */}
                       <div style={{ 
-                        position: 'absolute', 
-                        top: '16px', 
-                        left: '12%', 
-                        right: '12%', 
-                        height: '4px', 
-                        background: 'linear-gradient(90deg, #3b82f6 0%, #7c3aed 50%, #10b981 100%)', 
-                        borderRadius: '2px', 
-                        zIndex: 0 
-                      }}></div>
-                      
-                      {/* Step 1: Nộp */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
-                        <div style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          borderRadius: '50%', 
-                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
-                          color: 'white', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontWeight: 'bold', 
-                          fontSize: '0.875rem',
-                          boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
-                        }}>1</div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Nộp hồ sơ</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
-                          {simResult.submitDate?.split('-').reverse().join('/')}
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontSize: '1.45rem', 
+                        color: '#0f172a',
+                        gap: '0.6rem', 
+                        flexWrap: 'nowrap',
+                        fontWeight: 500
+                      }}>
+                        <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>rem</sub>
                         </span>
+                        <span style={{ color: '#64748b' }}>≈</span>
+                        <BracketedFraction 
+                          num={<span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Q<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>pos</sub></span>} 
+                          den={<span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>R<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>daily</sub></span>} 
+                        />
+                        <span style={{ color: '#64748b' }}>=</span>
+                        <BracketedFraction 
+                          num={<span>{f.Q_pos}</span>} 
+                          den={<span>{f.R_daily}</span>} 
+                        />
+                        <span style={{ color: '#64748b' }}>≈</span>
+                        <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_rem} d</span>
                       </div>
 
-                      {/* Step 2: Thẩm tra */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
-                        <div style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          borderRadius: '50%', 
-                          background: 'linear-gradient(135deg, #7c3aed, #6366f1)', 
-                          color: 'white', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontWeight: 'bold', 
-                          fontSize: '0.875rem',
-                          boxShadow: '0 0 12px rgba(124, 58, 237, 0.4)'
-                        }}>2</div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Được thẩm tra</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
-                          {simResult.vettingStartDate?.split('-').reverse().join('/')}
-                        </span>
+                      <div style={{ width: '90%', height: '1px', backgroundColor: 'rgba(0,0,0,0.05)' }}></div>
+
+                      {/* Dòng 2: where hệ phương trình */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '0.75rem', 
+                        width: '100%',
+                        fontSize: '1.15rem'
+                      }}>
+                        <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#64748b', marginRight: '0.25rem' }}>where</span>
+                        
+                        {/* Dấu ngoặc nhọn bên trái tự co giãn */}
+                        <div style={{ height: '90px', width: '12px', flexShrink: 0 }}>
+                          <svg viewBox="0 0 12 100" preserveAspectRatio="none" style={{ width: '12px', height: '100%', color: '#475569' }}>
+                            <path d="M 12,0 C 6,0 4,10 4,20 L 4,45 C 4,48 2,50 0,50 C 2,50 4,52 4,55 L 4,80 C 4,90 6,100 12,100" stroke="currentColor" fill="none" strokeWidth="1.2"/>
+                          </svg>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'flex-start' }}>
+                          {/* Q_pos */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Q<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>pos</sub></span>
+                            <span style={{ color: '#64748b' }}>≈</span>
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                              <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Q<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>app</sub></span>
+                              <HorizontalBrace value={f.Q_app} />
+                            </div>
+                            <span style={{ color: '#64748b' }}>-</span>
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                              <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>C<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>proc</sub></span>
+                              <HorizontalBrace value={f.C_proc} />
+                            </div>
+                            <span style={{ color: '#64748b' }}>-</span>
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                              <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>E<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>proc</sub></span>
+                              <HorizontalBrace value={f.E_proc} />
+                            </div>
+                          </div>
+
+                          {/* R_daily */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>R<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>daily</sub></span>
+                            <span style={{ color: '#64748b' }}>≈</span>
+                            <BracketedFraction 
+                              num={<span style={{ fontSize: '0.95rem' }}>∑ P</span>} 
+                              den={<span style={{ fontSize: '0.95rem' }}>∑ D</span>} 
+                            />
+                            <span style={{ color: '#64748b' }}>=</span>
+                            <BracketedFraction 
+                              num={<span>{f.sumP}</span>} 
+                              den={<span>{f.sumD}</span>} 
+                            />
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Step 3: Kết quả */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, textAlign: 'center' }}>
-                        <div style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          borderRadius: '50%', 
-                          background: 'linear-gradient(135deg, #10b981, #059669)', 
-                          color: 'white', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontWeight: 'bold', 
-                          fontSize: '0.875rem',
-                          boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)'
-                        }}>3</div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-primary)' }}>Có kết quả</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.1rem', fontWeight: 500 }}>
-                          {simResult.completionDate?.split('-').reverse().join('/')}
-                        </span>
+                      <div style={{ width: '90%', height: '1px', backgroundColor: 'rgba(0,0,0,0.05)' }}></div>
+
+                      {/* Dòng 3: Q_app */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '0.5rem', 
+                        width: '100%',
+                        fontSize: '1.15rem'
+                      }}>
+                        <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Q<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>app</sub></span>
+                        <span style={{ color: '#64748b' }}>≈</span>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                          <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>C<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>prev</sub></span>
+                          <HorizontalBrace value={f.C_prev} />
+                        </div>
+                        <span style={{ color: '#64748b' }}>+</span>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                          <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>N<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>app</sub></span>
+                          <HorizontalBrace value={f.N_app} />
+                        </div>
+                        <span style={{ color: '#64748b' }}>-</span>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'top' }}>
+                          <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>P<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>app</sub></span>
+                          <HorizontalBrace value={f.P_app} />
+                        </div>
                       </div>
                     </div>
+
+                    {/* Dòng thông tin giải thích */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, textAlign: 'left' }}>
+                        *This is an <strong>estimate</strong> based on current processing rates, expected queue position, and pending applications. Actual processing time for your application may vary.
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5, textAlign: 'left', fontStyle: 'italic' }}>
+                        *Đây là số liệu <strong>ước tính</strong> dựa trên tốc độ xử lý hiện tại, vị trí hàng đợi thực tế và số lượng hồ sơ đang tồn đọng. Thời gian thẩm định hồ sơ thực tế của bạn có thể thay đổi.
+                      </p>
+                    </div>
+
+                    {/* Chú giải các ký hiệu ký tự toán học */}
+                    <details style={{ width: '100%', cursor: 'pointer', textAlign: 'left' }}>
+                      <summary style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Info size={14} /> Giải thích các ký hiệu công thức
+                      </summary>
+                      <div style={{ 
+                        marginTop: '0.5rem', 
+                        padding: '0.75rem', 
+                        background: 'rgba(0,0,0,0.02)', 
+                        borderRadius: '12px', 
+                        fontSize: '0.8rem', 
+                        color: '#334155',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '0.5rem 1rem'
+                      }}>
+                        <div><strong>D<sub>rem</sub></strong>: Số ngày chờ còn lại dự kiến.</div>
+                        <div><strong>Q<sub>pos</sub></strong>: Vị trí hàng đợi hiện tại.</div>
+                        <div><strong>R<sub>daily</sub></strong>: Tốc độ xử lý hàng ngày (tb 6 tháng).</div>
+                        <div><strong>Q<sub>app</sub></strong>: Tổng hồ sơ cần xử lý tại tháng nộp.</div>
+                        <div><strong>C<sub>prev</sub></strong>: Hồ sơ tồn đọng từ tháng trước.</div>
+                        <div><strong>N<sub>app</sub></strong>: Hồ sơ tiếp nhận mới trong tháng nộp.</div>
+                        <div><strong>P<sub>app</sub></strong>: Hồ sơ nộp sau bạn trong tháng nộp.</div>
+                        <div><strong>C<sub>proc</sub></strong>: Hồ sơ đã xử lý trước khi bạn nộp.</div>
+                        <div><strong>E<sub>proc</sub></strong>: Hồ sơ đã giải quyết sau nộp đến nay.</div>
+                        <div><strong>∑ P / ∑ D</strong>: Tổng số hồ sơ xử lý / số ngày (6 tháng).</div>
+                      </div>
+                    </details>
                   </div>
-
-                  {/* Inner Stats Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Clock size={12}/> Tổng thời gian chờ</span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.waitDays.toLocaleString()} ngày</span>
-                    </div>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><CalendarClock size={12}/> Chờ trong hàng đợi</span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.queueWaitDays.toLocaleString()} ngày</span>
-                    </div>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Clock size={12}/> Thời gian thẩm tra</span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.activeVettingDays.toLocaleString()} ngày</span>
-                    </div>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(255,255,255,0.9)', padding: '0.75rem 1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}><Building2 size={12}/> Hồ sơ tồn đọng</span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{simResult.positionDetails.startingBacklog.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-
-
-                  {/* Badges */}
-                  <div style={{ marginTop: '0.25rem' }}>
-                    {simResult.projected && <span className="sim-note" style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(217, 119, 6, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', fontWeight: 500 }}><Info size={14} style={{flexShrink: 0}}/> Số liệu ước tính chứa Forecast dựa trên tốc độ xử lý 12 tháng gần nhất.</span>}
-                    {!simResult.projected && simResult.waitDays > 0 && <span className="sim-note" style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(5, 150, 105, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', fontWeight: 500 }}><CheckCircle size={14} style={{flexShrink: 0}}/> Bám sát 100% lịch sử xử lý hồ sơ thực tế của Cục tại thời điểm nộp.</span>}
-                  </div>
-                </div>
-              ) : (
+                );
+              })() : (
                 <span style={{ color: 'var(--text-secondary)' }}>Đang tính toán hàng chờ...</span>
               )}
             </div>

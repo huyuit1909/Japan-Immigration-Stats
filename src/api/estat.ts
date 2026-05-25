@@ -1,4 +1,4 @@
-import { ImmigrationRecord } from '../data/mock';
+import { ImmigrationRecord } from '../types/immigration';
 
 const ACTION_MAP: Record<string, 'received' | 'processed' | 'totalHandled' | 'approved' | 'rejected'> = {
   '103000': 'received',      // Tiếp nhận mới trong kỳ (Received New)
@@ -58,8 +58,8 @@ export const fetchRealEstatData = async (appId: string): Promise<ImmigrationReco
 
       if (!action || !type || !bureau) continue;
 
-      // time format: 2023000101. Year is 0-4, Month is 6-8.
-      const monthStr = time.length >= 8 ? `${time.substring(0, 4)}-${time.substring(6, 8)}` : time;
+      // time format: YYYY0001MM. Year is index 0-4, Month is last 2 characters.
+      const monthStr = time.length >= 8 ? `${time.substring(0, 4)}-${time.slice(-2)}` : time;
 
       const key = `${bureau}-${type}-${monthStr}`;
 

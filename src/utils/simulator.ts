@@ -24,7 +24,9 @@ export interface SimulationResult {
     sumP: number;
     sumD: number;
     R_daily: number;
-    D_rem: number;
+    D_rem: number;      // Số ngày chờ còn lại từ ngày hôm nay
+    D_total: number;    // Tổng số ngày chờ từ ngày nộp
+    daysWaited: number; // Số ngày đã chờ từ ngày nộp đến hôm nay
     referenceDate: string;
     lastRealMonth: string;
   };
@@ -237,23 +239,24 @@ export const calculateCFM = (submitDate: string, dataSeries: ImmigrationRecord[]
 
   const R_daily = sumD > 0 ? parseFloat((sumP / sumD).toFixed(4)) : 1.0;
 
-  // ---- Bước 9: D_rem ----
-  const D_rem = R_daily > 0 ? Math.ceil(Q_pos / R_daily) : 0;
+  // ---- Bước 9: Tính toán tổng số ngày thẩm định kể từ ngày nộp ----
+  const D_total = R_daily > 0 ? Math.ceil(Q_pos / R_daily) : 0;
 
   // ---- Bước 10: Ngày hoàn thành ----
-  // baseDate: nếu nộp tương lai → kể từ ngày nộp; nếu đã nộp → kể từ hôm nay
-  const baseCalcDate = isSubmitInFuture ? submitObj : today;
-  const referenceDateStr = formatDate(baseCalcDate);
-
+  // Ngày hoàn thành dự kiến luôn bằng Ngày nộp + Tổng số ngày chờ tính từ ngày nộp
   const completionDateObj = new Date(
-    baseCalcDate.getFullYear(),
-    baseCalcDate.getMonth(),
-    baseCalcDate.getDate() + D_rem
+    submitObj.getFullYear(),
+    submitObj.getMonth(),
+    submitObj.getDate() + D_total
   );
   const completionDate = formatDate(completionDateObj);
 
-  // Tổng số ngày chờ từ ngày nộp đến ngày hoàn thành
+  // Tổng số ngày chờ thực tế từ ngày nộp đến ngày hoàn thành
   const waitDays = Math.max(0, diffInDays(submitObj, completionDateObj));
+
+  // Tính số ngày đã chờ và số ngày còn lại
+  const daysWaited = isSubmitInFuture ? 0 : Math.max(0, diffInDays(submitObj, todayZero));
+  const D_rem = isSubmitInFuture ? D_total : Math.max(0, D_total - daysWaited);
 
   // Các trường tương thích ngược cho giao diện cũ
   const queueWaitDays = Math.max(0, Math.round(waitDays * 0.7));
@@ -264,6 +267,9 @@ export const calculateCFM = (submitDate: string, dataSeries: ImmigrationRecord[]
     submitObj.getDate() + queueWaitDays
   );
   const vettingStartDate = formatDate(vettingStartDateObj);
+
+  const baseCalcDate = isSubmitInFuture ? submitObj : today;
+  const referenceDateStr = formatDate(baseCalcDate);
 
   return {
     submitDate,
@@ -290,6 +296,8 @@ export const calculateCFM = (submitDate: string, dataSeries: ImmigrationRecord[]
       sumD,
       R_daily,
       D_rem,
+      D_total,
+      daysWaited,
       referenceDate: referenceDateStr,
       lastRealMonth: lastRealMonthStr
     }

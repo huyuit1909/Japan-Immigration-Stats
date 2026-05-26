@@ -320,7 +320,7 @@ function App() {
                         fontWeight: 500
                       }}>
                         <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
-                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>rem</sub>
+                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>total</sub>
                         </span>
                         <span style={{ color: '#64748b' }}>≈</span>
                         <BracketedFraction 
@@ -333,8 +333,38 @@ function App() {
                           den={<span>{f.R_daily}</span>} 
                         />
                         <span style={{ color: '#64748b' }}>≈</span>
-                        <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_rem} d</span>
+                        <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_total} d</span>
                       </div>
+
+                      {f.daysWaited > 0 && (
+                        <>
+                          <div style={{ width: '90%', height: '1px', backgroundColor: 'rgba(0,0,0,0.05)' }}></div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            fontSize: '1.25rem', 
+                            color: '#334155',
+                            gap: '0.5rem', 
+                            flexWrap: 'wrap',
+                            fontWeight: 500
+                          }}>
+                            <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                              D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>rem</sub>
+                            </span>
+                            <span style={{ color: '#64748b' }}>=</span>
+                            <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                              D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>total</sub>
+                            </span>
+                            <span style={{ color: '#64748b' }}>-</span>
+                            <span style={{ color: '#e11d48', fontWeight: 600 }}>{f.daysWaited} d (đã chờ)</span>
+                            <span style={{ color: '#64748b' }}>=</span>
+                            <span>{f.D_total} - {f.daysWaited}</span>
+                            <span style={{ color: '#64748b' }}>≈</span>
+                            <span style={{ fontWeight: 700, color: '#10b981', fontFamily: 'Georgia, serif' }}>{f.D_rem} d còn lại</span>
+                          </div>
+                        </>
+                      )}
 
                       <div style={{ width: '90%', height: '1px', backgroundColor: 'rgba(0,0,0,0.05)' }}></div>
 
@@ -450,9 +480,9 @@ function App() {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                         gap: '0.5rem 1rem'
                       }}>
-                        <div><strong>D<sub>rem</sub></strong>: Số ngày chờ còn lại dự kiến.</div>
-                        <div><strong>Q<sub>pos</sub></strong>: Vị trí hàng đợi hiện tại.</div>
-                        <div><strong>R<sub>daily</sub></strong>: Tốc độ xử lý hàng ngày (tb 6 tháng).</div>
+                         <div><strong>D<sub>total</sub></strong>: Tổng số ngày thẩm định kể từ ngày nộp.</div>
+                         <div><strong>D<sub>rem</sub></strong>: Số ngày chờ còn lại dự kiến kể từ hôm nay.</div>
+                         <div><strong>Q<sub>pos</sub></strong>: Vị trí hàng đợi hiện tại.</div>
                         <div><strong>Q<sub>app</sub></strong>: Tổng hồ sơ cần xử lý tại tháng nộp.</div>
                         <div><strong>C<sub>prev</sub></strong>: Hồ sơ tồn đọng từ tháng trước.</div>
                         <div><strong>N<sub>app</sub></strong>: Hồ sơ tiếp nhận mới trong tháng nộp.</div>

@@ -320,7 +320,7 @@ function App() {
                         fontWeight: 500
                       }}>
                         <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
-                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>total</sub>
+                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>queue</sub>
                         </span>
                         <span style={{ color: '#64748b' }}>≈</span>
                         <BracketedFraction 
@@ -333,7 +333,35 @@ function App() {
                           den={<span>{f.R_daily}</span>} 
                         />
                         <span style={{ color: '#64748b' }}>≈</span>
-                        <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_total} d</span>
+                        <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_queue} d</span>
+                      </div>
+
+                      {/* Dòng 1b: D_total = D_elapsed + D_queue */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontSize: '1.25rem', 
+                        color: '#334155',
+                        gap: '0.5rem', 
+                        flexWrap: 'wrap',
+                        fontWeight: 500
+                      }}>
+                        <span style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                          D<sub style={{ fontSize: '0.6em', bottom: '-0.2em' }}>total</sub>
+                        </span>
+                        <span style={{ color: '#64748b' }}>=</span>
+                        {f.clearedInData ? (
+                          <span>{f.D_total} d <span style={{ fontSize: '0.85rem', color: '#64748b' }}>(hàng đợi đã hết trong dữ liệu thật)</span></span>
+                        ) : (
+                          <>
+                            <span>{f.D_elapsed} d <span style={{ fontSize: '0.8rem', color: '#64748b' }}>(nộp → {f.anchorDate})</span></span>
+                            <span style={{ color: '#64748b' }}>+</span>
+                            <span>{f.D_queue} d</span>
+                            <span style={{ color: '#64748b' }}>=</span>
+                            <span style={{ fontWeight: 700, color: '#3b82f6', fontFamily: 'Georgia, serif' }}>{f.D_total} d</span>
+                          </>
+                        )}
                       </div>
 
                       {f.daysWaited > 0 && (
@@ -480,15 +508,16 @@ function App() {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                         gap: '0.5rem 1rem'
                       }}>
-                         <div><strong>D<sub>total</sub></strong>: Tổng số ngày thẩm định kể từ ngày nộp.</div>
+                         <div><strong>D<sub>total</sub></strong>: Tổng số ngày chờ kể từ ngày nộp.</div>
+                         <div><strong>D<sub>queue</sub></strong>: Số ngày để xử lý hết Q<sub>pos</sub>, tính từ mốc {f.anchorDate}.</div>
                          <div><strong>D<sub>rem</sub></strong>: Số ngày chờ còn lại dự kiến kể từ hôm nay.</div>
-                         <div><strong>Q<sub>pos</sub></strong>: Vị trí hàng đợi hiện tại.</div>
+                         <div><strong>Q<sub>pos</sub></strong>: Số hồ sơ còn đứng trước bạn tại mốc {f.anchorDate} (hết dữ liệu thật tháng {f.lastRealMonth}).</div>
                         <div><strong>Q<sub>app</sub></strong>: Tổng hồ sơ cần xử lý tại tháng nộp.</div>
-                        <div><strong>C<sub>prev</sub></strong>: Hồ sơ tồn đọng từ tháng trước.</div>
+                        <div><strong>C<sub>prev</sub></strong>: Hồ sơ tồn đọng đầu tháng nộp (旧受).</div>
                         <div><strong>N<sub>app</sub></strong>: Hồ sơ tiếp nhận mới trong tháng nộp.</div>
                         <div><strong>P<sub>app</sub></strong>: Hồ sơ nộp sau bạn trong tháng nộp.</div>
                         <div><strong>C<sub>proc</sub></strong>: Hồ sơ đã xử lý trước khi bạn nộp.</div>
-                        <div><strong>E<sub>proc</sub></strong>: Hồ sơ đã giải quyết sau nộp đến nay.</div>
+                        <div><strong>E<sub>proc</sub></strong>: Hồ sơ đã xử lý sau ngày nộp đến hết tháng dữ liệu thật cuối.</div>
                         <div><strong>∑ P / ∑ D</strong>: Tổng số hồ sơ xử lý / số ngày (6 tháng).</div>
                       </div>
                     </details>
